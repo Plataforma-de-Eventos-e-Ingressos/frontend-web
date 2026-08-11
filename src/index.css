@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Opcional: Definindo a cor de fundo padrão do corpo da página para a cor mais clara da sua paleta */
+body {
+  @apply bg-brand-100 text-brand-500 min-h-screen antialiased;
+}
