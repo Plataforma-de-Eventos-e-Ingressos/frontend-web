@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { Link } from 'react-router-dom';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -68,6 +69,12 @@ export function Login() {
           >
             Entrar
           </button>
+          <p className="mt-6 text-center text-brand-400 text-sm">
+            Não tem uma conta?{' '}
+            <Link to="/cadastro" className="text-brand-500 font-bold hover:underline">
+              Cadastre-se
+            </Link>
+          </p>
         </form>
       </div>
     </div>
