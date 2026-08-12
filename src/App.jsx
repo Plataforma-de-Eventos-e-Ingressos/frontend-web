@@ -3,6 +3,7 @@ import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { DefaultLayout } from './components/DefaultLayout';
 
 function DashboardTemporario() {
   return (
@@ -27,10 +28,13 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+
         {/* Rotas Públicas */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/cadastro" element={<Register />} />
+        <Route element={<DefaultLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Register />} />
+        </Route>
         
         {/* Rotas Protegidas */}
         <Route 
