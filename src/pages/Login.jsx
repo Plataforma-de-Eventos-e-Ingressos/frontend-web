@@ -21,7 +21,7 @@ export function Login() {
 
       const { access_token } = response.data;
       localStorage.setItem('@EliteTickets:token', access_token);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       setError('E-mail ou senha incorretos. Tente novamente.');
     }
