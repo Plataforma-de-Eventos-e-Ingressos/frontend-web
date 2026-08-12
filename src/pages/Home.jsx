@@ -1,29 +1,113 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../services/api';
 
 export function Home() {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        const response = await api.get('/events');
+        setEvents(response.data);
+      } catch (err) {
+        setError('Não foi possível carregar os eventos no momento.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchEvents();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-brand-100 flex flex-col items-center justify-center p-4">
-      <div className="text-center max-w-2xl">
-        <h1 className="text-5xl md:text-6xl font-extrabold text-brand-500 mb-6 tracking-tight">
-          Elite Tickets
-        </h1>
-        <p className="text-lg md:text-xl text-brand-400 mb-10">
-          A sua plataforma premium para descobrir e reservar ingressos para os melhores eventos, shows e festivais.
-        </p>
+    <div className="flex-1 bg-brand-100 p-4 sm:p-8">
+      <div className="container mx-auto max-w-6xl">
         
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link 
-            to="/login"
-            className="bg-brand-400 hover:bg-brand-500 text-white font-bold py-3 px-8 rounded shadow-lg transition-transform transform hover:-translate-y-1"
-          >
-            Fazer Login
-          </Link>
-          <Link 
-            to="/cadastro"
-            className="bg-white hover:bg-brand-200 text-brand-500 border border-brand-300 font-bold py-3 px-8 rounded shadow-lg transition-transform transform hover:-translate-y-1"
-          >
-            Criar Conta
-          </Link>
+        <div className="text-center mb-12 mt-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-brand-500 mb-4 tracking-tight">
+            Eventos em Destaque
+          </h1>
+          <p className="text-lg text-brand-400">
+            Descubra os melhores shows e garanta seu lugar.
+          </p>
+        </div>
+
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <p className="text-brand-400 text-xl font-semibold animate-pulse">
+              Carregando o catálogo...
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-500 text-white p-4 rounded text-center mb-8 shadow">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && events.length === 0 && (
+          <div className="text-center py-20 bg-white rounded-lg shadow-sm border border-brand-200">
+            <p className="text-brand-400 text-lg">Nenhum evento programado para os próximos dias.</p>
+          </div>
+        )}
+
+        {/* Grid de Eventos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {events.map((event) => (
+            <div 
+              key={event.id} 
+              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col border border-brand-200"
+            >
+              {/* Imagem do Evento (Usando um placeholder caso não tenha URL) */}
+              <div className="h-48 bg-brand-300 overflow-hidden relative">
+                {event.image_url ? (
+                  <img 
+                    src={event.image_url} 
+                    alt={event.title} 
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-brand-100 font-bold text-xl">
+                    Elite Tickets
+                  </div>
+                )}
+                {/* Badge de Preço */}
+                <div className="absolute top-4 right-4 bg-brand-500 text-white font-bold px-3 py-1 rounded shadow">
+                  R$ {event.price.toFixed(2)}
+                </div>
+              </div>
+
+              {/* Informações do Evento */}
+              <div className="p-6 flex-1 flex flex-col">
+                <h3 className="text-2xl font-bold text-brand-500 mb-2 line-clamp-2">
+                  {event.title}
+                </h3>
+                <p className="text-brand-400 text-sm mb-4 line-clamp-3">
+                  {event.description}
+                </p>
+                
+                <div className="mt-auto space-y-2 mb-6 text-sm text-brand-500 font-medium">
+                  <p className="flex items-center gap-2">
+                    📅 {new Date(event.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    📍 {event.location}
+                  </p>
+                </div>
+
+                <Link 
+                  to={`/evento/${event.id}`}
+                  className="block text-center w-full bg-brand-400 hover:bg-brand-500 text-white font-bold py-3 rounded shadow transition-transform transform hover:-translate-y-0.5 mt-auto"
+                >
+                  Ver Detalhes
+                </Link>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

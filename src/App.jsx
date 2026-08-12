@@ -4,6 +4,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { DefaultLayout } from './components/DefaultLayout';
+import { EventDetails } from './pages/EventDetails';
 
 function DashboardTemporario() {
   return (
@@ -34,6 +35,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
+          <Route path="/evento/:id" element={<EventDetails />} />
         </Route>
         
         {/* Rotas Protegidas */}
