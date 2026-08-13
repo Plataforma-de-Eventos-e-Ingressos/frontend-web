@@ -92,7 +92,7 @@ export function Home() {
                 
                 <div className="mt-auto space-y-2 mb-6 text-sm text-brand-500 font-medium">
                   <p className="flex items-center gap-2">
-                    📅 {new Date(event.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    📅 {new Date(event.event_datetime).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                   <p className="flex items-center gap-2">
                     📍 {event.location}
