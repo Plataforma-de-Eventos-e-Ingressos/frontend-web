@@ -1,62 +1,87 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 export function Header() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const location = useLocation(); // Usamos o location para forçar a re-renderização quando a rota muda
+  
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
+    // 1. Busca o token no localStorage
     const token = localStorage.getItem('@EliteTickets:token');
-    setIsAuthenticated(!!token);
-  }, [location]);
+    
+    if (token) {
+      setIsLoggedIn(true);
+      try {
+        // 2. O JWT tem 3 partes separadas por ponto. A parte 1 é o payload (dados).
+        // Usamos atob() para decodificar a base64 dessa parte.
+        const payloadBase64 = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payloadBase64));
+        
+        // 3. Salva a role no estado ('ORGANIZADOR', 'CLIENTE', etc.)
+        setUserRole(decodedPayload.role); 
+      } catch (error) {
+        console.error("Erro ao decodificar o token no Header:", error);
+        handleLogout(); // Se o token for inválido/corrompido, desloga por segurança
+      }
+    } else {
+      setIsLoggedIn(false);
+      setUserRole(null);
+    }
+  }, [location.pathname]); // Executa novamente sempre que o usuário navega
 
-  const handleLogout = () => {
+  function handleLogout() {
     localStorage.removeItem('@EliteTickets:token');
-    setIsAuthenticated(false);
+    setIsLoggedIn(false);
+    setUserRole(null);
     navigate('/login');
-  };
+  }
 
   return (
-    <header className="bg-brand-500 text-white p-4 shadow-md sticky top-0 z-50">
-      <div className="container mx-auto flex justify-between items-center max-w-6xl">
+    <header className="bg-brand-500 text-white shadow-md">
+      <div className="container mx-auto px-4 sm:px-8 py-4 flex justify-between items-center">
         
-        {/* Responsividade do Título: "E.T" no mobile, "EliteTickets" no tablet/desktop */}
-        <Link to="/" className="text-2xl font-bold tracking-tight">
-          <span className="block sm:hidden">
-            E<span className="text-brand-200">.T</span>
-          </span>
-          <span className="hidden sm:block">
-            Elite<span className="text-brand-200">Tickets</span>
-          </span>
+        {/* Logo */}
+        <Link to="/" className="text-2xl font-extrabold tracking-tighter text-white hover:text-brand-100 transition">
+          Elite<span className="text-brand-200">Tickets</span>
         </Link>
-        
-        {/* Ajustamos o gap e o tamanho da fonte para não quebrar no mobile */}
-        <nav className="flex items-center gap-3 sm:gap-6 font-semibold text-sm sm:text-base">
-          {isAuthenticated ? (
+
+        {/* Navegação Dinâmica */}
+        <nav className="flex items-center gap-4 sm:gap-6">
+          {!isLoggedIn ? (
             <>
-              <Link to="/dashboard" className="text-brand-100 hover:text-white transition-colors">
-                Painel
+              <Link to="/login" className="text-white hover:text-brand-200 font-semibold transition">
+                Entrar
               </Link>
-              <button 
-                onClick={handleLogout}
-                className="bg-red-500 hover:bg-red-600 text-white px-3 sm:px-5 py-2 rounded shadow transition-transform transform hover:-translate-y-0.5"
-              >
-                Sair
-              </button>
+              <Link to="/cadastro" className="bg-brand-400 hover:bg-brand-300 text-white font-bold py-2 px-5 rounded shadow transition">
+                Cadastrar
+              </Link>
             </>
           ) : (
             <>
-              <Link to="/login" className="text-brand-100 hover:text-white transition-colors">
-                Entrar
-              </Link>
-              {/* whitespace-nowrap impede que o botão quebre em duas linhas */}
-              <Link 
-                to="/cadastro" 
-                className="bg-brand-400 hover:bg-brand-300 text-brand-200 px-3 sm:px-5 py-2 rounded shadow transition-transform transform hover:-translate-y-0.5 whitespace-nowrap"
+              {/* Opções específicas do ORGANIZADOR */}
+              {userRole === 'ORGANIZADOR' && (
+                <Link to="/organizador" className="text-white hover:text-brand-200 font-semibold transition">
+                  Painel de Gestão
+                </Link>
+              )}
+              
+              {/* Opções específicas do CLIENTE */}
+              {userRole === 'CLIENTE' && (
+                <Link to="/dashboard" className="text-white hover:text-brand-200 font-semibold transition">
+                  Meus Ingressos
+                </Link>
+              )}
+
+              {/* Botão de Sair Global */}
+              <button 
+                onClick={handleLogout}
+                className="bg-red-500 hover:bg-red-400 text-white font-bold py-1.5 px-4 rounded shadow transition"
               >
-                Criar Conta
-              </Link>
+                Sair
+              </button>
             </>
           )}
         </nav>

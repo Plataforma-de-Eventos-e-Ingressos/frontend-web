@@ -1,26 +1,46 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 export function Home() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    async function fetchEvents() {
-      try {
-        const response = await api.get('/events');
-        setEvents(response.data);
-      } catch (err) {
-        setError('Não foi possível carregar os eventos no momento.');
-      } finally {
-        setLoading(false);
+      const token = localStorage.getItem('@EliteTickets:token');
+      if (token) {
+        try {
+          const payloadBase64 = token.split('.')[1];
+          const decodedPayload = JSON.parse(atob(payloadBase64));
+          
+          if (decodedPayload.role === 'ORGANIZADOR') {
+            navigate('/organizador');
+            return; 
+          }
+          if (decodedPayload.role === 'PORTARIA') {
+            navigate('/portaria');
+            return;
+          }
+        } catch (e) {
+        }
       }
-    }
 
-    fetchEvents();
-  }, []);
+      async function fetchEvents() {
+        try {
+          const response = await api.get('/events');
+          setEvents(response.data);
+        } catch (err) {
+          setError('Não foi possível carregar os eventos no momento.');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      fetchEvents();
+  }, [navigate]);
 
   return (
     <div className="flex-1 bg-brand-100 p-4 sm:p-8">
