@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { DefaultLayout } from './components/DefaultLayout';
 import { EventDetails } from './pages/EventDetails';
 import { Dashboard } from './pages/Dashboard';
+import { OrganizerDashboard } from './pages/OrganizerDashboard';
 
 function App() {
   return (
@@ -30,7 +31,15 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          
+
+          <Route 
+            path="/organizador" 
+            element={
+              <ProtectedRoute>
+                <OrganizerDashboard />
+              </ProtectedRoute>
+            } 
+          />
         </Route>
 
       </Routes>

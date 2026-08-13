@@ -21,11 +21,23 @@ export function Login() {
 
       const { access_token } = response.data;
       localStorage.setItem('@EliteTickets:token', access_token);
-      navigate('/');
+      
+      const payloadBase64 = access_token.split('.')[1];
+      const decodedPayload = JSON.parse(atob(payloadBase64));
+      const userRole = decodedPayload.role;
+
+      if (userRole === 'ORGANIZADOR') {
+        navigate('/organizador');
+      } else if (userRole === 'PORTARIA') {
+        navigate('/portaria');
+      } else {
+        navigate('/'); 
+      }
+
     } catch (err) {
       setError('E-mail ou senha incorretos. Tente novamente.');
     }
-  };
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-500 px-4">
