@@ -110,12 +110,20 @@ export function EventDetails() {
       <div className="container mx-auto max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden border border-brand-200">
         
         {/* Imagem de Capa */}
-        <div className="h-64 sm:h-96 bg-brand-300 relative">
-          {event.image_url ? (
-            <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
+        <div className="w-full h-96 bg-gray-900 overflow-hidden rounded-t-xl flex items-center justify-center relative">
+          {event.poster_url ? (
+            <img 
+              src={event.poster_url.startsWith('http') ? event.poster_url : `https://image.tmdb.org/t/p/w500${event.poster_url}`} 
+              alt={event.title} 
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://via.placeholder.com/500x300?text=Imagem+Indisponível';
+              }}
+            />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-brand-100 font-bold text-3xl">
-              Elite Tickets
+            <div className="w-full h-full flex items-center justify-center text-white font-bold text-2xl bg-brand-500">
+              {event.title}
             </div>
           )}
         </div>
