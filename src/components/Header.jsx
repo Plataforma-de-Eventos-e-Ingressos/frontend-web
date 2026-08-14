@@ -45,7 +45,13 @@ export function Header() {
         
         {/* Logo */}
         <Link to="/" className="text-2xl font-extrabold tracking-tighter text-white hover:text-brand-100 transition">
-          Elite<span className="text-brand-200">Tickets</span>
+          <span className="block sm:hidden">
+            E.<span className="text-brand-200">T</span>
+          </span>
+          
+          <span className="hidden sm:block">
+            Elite<span className="text-brand-200">Tickets</span>
+          </span>
         </Link>
 
         {/* Navegação Dinâmica */}

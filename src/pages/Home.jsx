@@ -82,16 +82,20 @@ export function Home() {
               key={event.id} 
               className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col border border-brand-200"
             >
-              {/* Imagem do Evento (Usando um placeholder caso não tenha URL) */}
-              <div className="h-48 bg-brand-300 overflow-hidden relative">
-                {event.image_url ? (
+              {/* Imagem do Evento*/}
+              <div className="h-64 bg-gray-900 overflow-hidden relative flex items-center justify-center">
+                {event.poster_url ? (
                   <img 
-                    src={event.image_url} 
+                    src={event.poster_url.startsWith('http') ? event.poster_url : `https://image.tmdb.org/t/p/w500${event.poster_url}`} 
                     alt={event.title} 
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                    className="w-full h-full object-contain transition-transform duration-500 hover:scale-105"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/500x300?text=Imagem+Indisponível';
+                    }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-brand-100 font-bold text-xl">
+                  <div className="w-full h-full flex items-center justify-center text-brand-100 font-bold text-xl bg-brand-500">
                     Elite Tickets
                   </div>
                 )}
