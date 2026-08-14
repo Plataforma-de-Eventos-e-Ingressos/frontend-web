@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
+import html2pdf from 'html2pdf.js';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Estados para gerenciar a impressão do PDF
+  const [ticketToPrint, setTicketToPrint] = useState(null);
+  const printRef = useRef(null);
 
   useEffect(() => {
     fetchMyTickets();
@@ -22,9 +27,7 @@ export function Dashboard() {
 
     try {
       const response = await api.get('/tickets/me', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
       setTickets(response.data);
     } catch (err) {
@@ -34,7 +37,6 @@ export function Dashboard() {
     }
   }
 
-  // Função para cancelar o ingresso
   async function handleCancelTicket(ticketId) {
     const confirm = window.confirm("Tem certeza que deseja cancelar este ingresso? Você perderá sua vaga.");
     if (!confirm) return;
@@ -46,7 +48,7 @@ export function Dashboard() {
       });
       
       alert("Ingresso cancelado com sucesso!");
-      fetchMyTickets(); // Atualiza a lista na tela
+      fetchMyTickets();
     } catch (error) {
       alert("Erro ao cancelar o ingresso.");
       console.error(error);
@@ -60,10 +62,29 @@ export function Dashboard() {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert("Pagamento realizado com sucesso!");
-      fetchMyTickets(); // Atualiza a tela
+      fetchMyTickets();
     } catch (error) {
       alert(error.response?.data?.detail || "Erro ao processar pagamento.");
     }
+  }
+
+  // Função mágica que gera o PDF
+  function handleDownloadPDF(ticket) {
+    setTicketToPrint(ticket);
+
+    // Damos 500ms para o React renderizar o HTML oculto e carregar as imagens da internet
+    setTimeout(() => {
+      const element = printRef.current;
+      const opt = {
+        margin:       10,
+        filename:     `ingresso-${ticket.event.title.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true }, // useCORS permite carregar o pôster e o QR Code no PDF
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(element).save();
+    }, 500);
   }
 
   if (loading) {
@@ -75,7 +96,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex-1 bg-brand-100 p-4 sm:p-8">
+    <div className="flex-1 bg-brand-100 p-4 sm:p-8 relative">
       <div className="container mx-auto max-w-5xl">
         
         {/* Botão de Voltar para a Home */}
@@ -119,7 +140,7 @@ export function Dashboard() {
               key={ticket.id} 
               className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col border border-brand-200"
             >
-              {/* Exibição do Cartaz do Evento (mesma lógica inteligente do organizador) */}
+              {/* Exibição do Cartaz do Evento */}
               {ticket.event.poster_url ? (
                 <img 
                   src={ticket.event.poster_url.startsWith('http') ? ticket.event.poster_url : `https://image.tmdb.org/t/p/w500${ticket.event.poster_url}`} 
@@ -154,7 +175,7 @@ export function Dashboard() {
                   </div>
 
                   <div className="flex gap-4 items-center">
-                    {ticket.status !== 'CANCELLED' && (
+                    {(ticket.status === 'PAID' || ticket.status === 'RESERVED') && (
                       <button 
                         onClick={() => handleCancelTicket(ticket.id)}
                         className="text-red-500 hover:text-red-700 text-sm font-bold underline transition"
@@ -163,7 +184,6 @@ export function Dashboard() {
                       </button>
                     )}
 
-                    {/* Novo Botão de Pagar */}
                     {ticket.status === 'RESERVED' && (
                       <button 
                         onClick={() => handlePayTicket(ticket.id)}
@@ -173,8 +193,6 @@ export function Dashboard() {
                       </button>
                     )}
                   </div>
-
-
                 </div>
 
                 {/* Lado Direito: Assento e QR Code Visual */}
@@ -186,15 +204,28 @@ export function Dashboard() {
                     {ticket.seat || 'Pista'}
                   </span>
                   
-                  {ticket.status === 'PAID' ? (
+                  {ticket.status === 'PAID'  ? (
                     <div className="flex flex-col items-center">
-                      {/* Gerador automático de imagem de QR Code baseado no token */}
                       <img 
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${ticket.qr_token}`} 
                         alt="QR Code do Ingresso"
                         className="w-24 h-24 object-contain rounded bg-white p-1 shadow-sm border border-brand-200 mb-1"
                       />
-                      <span className="text-[10px] text-brand-400 font-mono">Apresente na entrada</span>
+                      
+                      {/* NOVO: Botão para disparar o download do PDF */}
+                      <button 
+                        onClick={() => handleDownloadPDF(ticket)}
+                        className="mt-3 text-[11px] font-bold bg-brand-500 text-white px-3 py-1.5 rounded shadow hover:bg-brand-600 transition"
+                      >
+                        📄 Baixar PDF
+                      </button>
+                    </div>
+                  ) : ticket.status === 'VALIDATED' ? (
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="text-4xl mb-2">✅</span>
+                      <span className="text-green-600 font-bold text-sm text-center leading-tight">
+                        Check-in<br/>Realizado
+                      </span>
                     </div>
                   ) : ticket.status === 'RESERVED' ? (
                     <span className="text-xs text-yellow-600 font-bold px-2 py-1 bg-yellow-50 rounded">
@@ -209,8 +240,41 @@ export function Dashboard() {
             </div>
           ))}
         </div>
-
       </div>
+
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+        {ticketToPrint && (
+          <div ref={printRef} className="w-[600px] bg-white p-12 font-sans text-gray-800">
+            <div className="border-4 border-gray-800 py-12 px-8 rounded-3xl flex flex-col items-center text-center">
+              
+              <h1 className="text-4xl font-black mb-10 uppercase tracking-tight text-brand-500">
+                {ticketToPrint.event.title}
+              </h1>
+
+              <div className="text-xl mb-12 w-full border-b-2 border-dashed border-gray-300 pb-8">
+                <span className="text-gray-500 text-sm block uppercase mb-2 font-bold tracking-widest">Setor / Assento</span>
+                <strong className="text-5xl text-gray-900">{ticketToPrint.seat || 'Pista / Único'}</strong>
+              </div>
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${ticketToPrint.qr_token}`} 
+                alt="QR Code"
+                className="w-56 h-56 mb-8 shadow-sm"
+                crossOrigin="anonymous"
+              />
+              
+              <div className="w-full mt-4">
+                <span className="text-gray-500 text-xs uppercase mb-2 block font-bold tracking-widest">Código de Validação de Segurança</span>
+                <div className="text-xs font-mono bg-gray-50 p-4 rounded-lg break-all w-full text-center border border-gray-200 text-gray-600">
+                  {ticketToPrint.qr_token}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

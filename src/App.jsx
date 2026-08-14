@@ -7,6 +7,7 @@ import { DefaultLayout } from './components/DefaultLayout';
 import { EventDetails } from './pages/EventDetails';
 import { Dashboard } from './pages/Dashboard';
 import { OrganizerDashboard } from './pages/OrganizerDashboard';
+import { Ordinance } from './pages/Ordinance';
 
 function App() {
   return (
@@ -37,6 +38,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <OrganizerDashboard />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/portaria" 
+            element={
+              <ProtectedRoute>
+                <Ordinance />
               </ProtectedRoute>
             } 
           />
