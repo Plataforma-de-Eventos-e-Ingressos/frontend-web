@@ -14,21 +14,19 @@ export function EventDetails() {
   const [reserveError, setReserveError] = useState('');
   const [reserveSuccess, setReserveSuccess] = useState(false);
 
-  // --- NOVOS ESTADOS PARA A LÓGICA DE INGRESSOS ---
-  const [quantity, setQuantity] = useState(1); // Para pista (Lotação Geral)
-  const [seats, setSeats] = useState([]); // Array de assentos vindos do backend
-  const [selectedSeatIds, setSelectedSeatIds] = useState([]); // Cadeiras escolhidas
-  const [isSeatMapOpen, setIsSeatMapOpen] = useState(false); // Controle do Modal do Mapa
+
+  const [quantity, setQuantity] = useState(1); 
+  const [seats, setSeats] = useState([]);
+  const [selectedSeatIds, setSelectedSeatIds] = useState([]);
+  const [isSeatMapOpen, setIsSeatMapOpen] = useState(false);
 
   useEffect(() => {
     async function fetchEventData() {
       try {
-        // 1. Busca os detalhes do evento
         const eventRes = await api.get(`/events/${id}`);
         const eventData = eventRes.data;
         setEvent(eventData);
 
-        // 2. Se for evento com lugar marcado, busca o mapa de assentos!
         if (eventData.has_assigned_seats) {
           const seatsRes = await api.get(`/events/${id}/seats`);
           setSeats(seatsRes.data);
@@ -50,7 +48,6 @@ export function EventDetails() {
       return;
     }
 
-    // Trava de segurança no Front-end
     if (event.has_assigned_seats && selectedSeatIds.length === 0) {
       setReserveError('Você precisa selecionar pelo menos um assento no mapa.');
       return;
@@ -64,7 +61,6 @@ export function EventDetails() {
     setReserveError('');
 
     try {
-      // 3. Monta o Payload dinâmico dependendo do tipo do evento
       const payload = {
         event_id: id,
         ...(event.has_assigned_seats 
@@ -89,31 +85,26 @@ export function EventDetails() {
     }
   };
 
-  // --- FUNÇÕES DO MAPA DE ASSENTOS ---
-  
-  // Agrupa os assentos por fileira para desenhar a grade (Ex: { "A": [assentos...], "B": [assentos...] })
   const seatsByRow = seats.reduce((acc, seat) => {
     if (!acc[seat.row]) acc[seat.row] = [];
     acc[seat.row].push(seat);
     return acc;
   }, {});
 
-  // Ordena as fileiras alfabeticamente
   const sortedRows = Object.keys(seatsByRow).sort();
 
   const toggleSeatSelection = (seat) => {
-    if (seat.status !== 'available') return; // Não deixa clicar em cadeira ocupada
+    if (seat.status !== 'available') return;
 
     setSelectedSeatIds(prev => {
       if (prev.includes(seat.id)) {
-        return prev.filter(id => id !== seat.id); // Desmarca
+        return prev.filter(id => id !== seat.id);
       } else {
-        return [...prev, seat.id]; // Marca
+        return [...prev, seat.id];
       }
     });
   };
 
-  // --- CÁLCULO DE PREÇO DINÂMICO ---
   const selectedCount = event?.has_assigned_seats ? selectedSeatIds.length : quantity;
   const totalPrice = (event?.price * selectedCount) || 0;
 
@@ -171,7 +162,6 @@ export function EventDetails() {
         </div>
 
         <div className="p-8 flex flex-col md:flex-row gap-8">
-          {/* Informações do Evento */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-4">
               <h1 className="text-4xl font-extrabold text-brand-500">{event.title}</h1>
@@ -193,14 +183,12 @@ export function EventDetails() {
             </div>
           </div>
 
-          {/* Painel de Checkout */}
           <div className="w-full md:w-80 bg-brand-50 p-6 rounded-xl border border-brand-200 h-fit flex flex-col shadow-sm">
             <span className="text-brand-400 font-semibold mb-2 text-sm uppercase tracking-wider">Total a pagar</span>
             <span className="text-4xl font-bold text-brand-500 mb-6 border-b border-brand-100 pb-4">
               R$ {totalPrice.toFixed(2)}
             </span>
 
-            {/* SELEÇÃO DINÂMICA: Pista vs Lugar Marcado */}
             {event.has_assigned_seats ? (
               <div className="mb-6">
                 <p className="text-brand-500 text-sm font-bold mb-2">Ingressos Selecionados:</p>
@@ -256,7 +244,6 @@ export function EventDetails() {
         </div>
       </div>
 
-      {/* MODAL DO MAPA DE ASSENTOS */}
       {isSeatMapOpen && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-3xl flex flex-col max-h-[90vh]">
@@ -269,26 +256,20 @@ export function EventDetails() {
               <button onClick={() => setIsSeatMapOpen(false)} className="text-brand-300 hover:text-red-500 font-bold text-2xl">&times;</button>
             </div>
 
-            {/* A Grade Visual do Teatro */}
             <div className="flex-1 overflow-auto bg-gray-50 rounded-xl border border-gray-200 p-6 flex flex-col items-center">
               
-              {/* O Palco */}
               <div className="w-3/4 h-8 bg-brand-300 rounded-b-[50%] mb-10 flex items-center justify-center shadow-inner">
                 <span className="text-xs font-bold text-white tracking-widest uppercase">Palco</span>
               </div>
 
-              {/* Renderização das Fileiras */}
               <div className="flex flex-col gap-3 items-center pb-8">
                 {sortedRows.map(rowLetter => {
-                  // Ordena os assentos da fileira pelo número
                   const rowSeats = seatsByRow[rowLetter].sort((a, b) => a.number - b.number);
                   
                   return (
                     <div key={rowLetter} className="flex items-center gap-4">
-                      {/* Letra da Fileira (Esquerda) */}
                       <span className="w-6 font-bold text-brand-400 text-right">{rowLetter}</span>
                       
-                      {/* Cadeiras */}
                       <div className="flex gap-2">
                         {rowSeats.map(seat => {
                           const isAvailable = seat.status === 'available';
@@ -314,7 +295,6 @@ export function EventDetails() {
                         })}
                       </div>
 
-                      {/* Letra da Fileira (Direita) */}
                       <span className="w-6 font-bold text-brand-400 text-left">{rowLetter}</span>
                     </div>
                   );
@@ -322,7 +302,6 @@ export function EventDetails() {
               </div>
             </div>
 
-            {/* Legenda e Botão de Confirmar */}
             <div className="mt-6 pt-6 border-t border-brand-100 flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex gap-4 text-sm font-medium text-brand-500">
                 <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-100 border-b-2 border-green-300 rounded-sm"></div> Livre</div>
