@@ -1,59 +1,79 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Html5QrcodeScanner } from 'html5-qrcode'; // Importação da câmera
+import { Html5Qrcode } from 'html5-qrcode'; 
 
 export function Ordinance() {
   const navigate = useNavigate();
   const [qrToken, setQrToken] = useState('');
   const [loading, setLoading] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false); // Controle da câmera
+  const [cameraActive, setCameraActive] = useState(false); 
   
   const [status, setStatus] = useState('idle'); 
   const [message, setMessage] = useState('');
   const [ticketData, setTicketData] = useState(null);
   
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null); // Ref para o input de arquivo oculto
 
-  // Foco no input manual quando a câmera não estiver ativa
   useEffect(() => {
     if (!cameraActive) {
       inputRef.current?.focus();
     }
   }, [status, cameraActive]);
 
-  // Lógica de ativação do Leitor de Câmera
+  // --- LÓGICA DA CÂMERA AO VIVO ---
   useEffect(() => {
+    let html5QrCode;
+
     if (cameraActive) {
-      // Configura o scanner (id da div, configurações de quadro e fps)
-      const scanner = new Html5QrcodeScanner(
-        "reader",
+      html5QrCode = new Html5Qrcode("reader");
+
+      html5QrCode.start(
+        { facingMode: "environment" }, 
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        false
-      );
-
-      // Inicia a renderização e define os callbacks de sucesso e erro
-      scanner.render(
         (decodedText) => {
-          // Sucesso: Leu o QR Code
-          setQrToken(decodedText);
-          scanner.clear(); // Desliga a câmera
-          setCameraActive(false);
-          validateTicket(decodedText); // Dispara a validação automaticamente
+          if (html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+              setQrToken(decodedText);
+              setCameraActive(false);
+              validateTicket(decodedText); 
+            }).catch(err => console.error("Erro ao desligar câmera:", err));
+          }
         },
-        (errorMessage) => {
-          // Apenas ignoramos os erros de leitura contínua (quadros sem QR code)
-        }
-      );
-
-      // Limpeza caso o componente seja desmontado ou a câmera desativada
-      return () => {
-        scanner.clear().catch(error => console.error("Falha ao limpar scanner", error));
-      };
+        (errorMessage) => { }
+      ).catch((err) => {
+        console.error("Erro ao acessar câmera: ", err);
+        setCameraActive(false);
+        alert("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
+      });
     }
+
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(error => console.error("Erro no cleanup da câmera", error));
+      }
+    };
   }, [cameraActive]);
 
-  // Função central isolada para poder ser chamada tanto pela câmera quanto pelo botão
+  async function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const html5QrCode = new Html5Qrcode("file-reader");
+    
+    try {
+      const decodedText = await html5QrCode.scanFile(file, false);
+      setQrToken(decodedText);
+      validateTicket(decodedText);
+    } catch (err) {
+      console.error("Erro ao ler imagem:", err);
+      alert("Não foi possível encontrar um QR Code válido nesta imagem. Tente outra foto ou use o leitor manual.");
+    } finally {
+      e.target.value = '';
+    }
+  }
+
   async function validateTicket(tokenToValidate) {
     if (!tokenToValidate.trim()) return;
 
@@ -93,15 +113,9 @@ export function Ordinance() {
     }
   }
 
-  // Wrapper para o formulário manual
   function handleManualSubmit(e) {
     e.preventDefault();
     validateTicket(qrToken);
-  }
-
-  function handleLogout() {
-    localStorage.removeItem('@EliteTickets:token');
-    navigate('/login');
   }
 
   const statusStyles = {
@@ -113,17 +127,10 @@ export function Ordinance() {
 
   return (
     <div className="min-h-screen bg-brand-100 flex flex-col items-center py-10 px-4">
-      {/* Cabeçalho Simplificado */}
       <div className="w-full max-w-2xl flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold text-brand-500">
           Elite<span className="text-brand-300">Portaria</span>
         </h1>
-        <button 
-          onClick={handleLogout}
-          className="text-brand-400 hover:text-red-500 font-bold transition"
-        >
-          Sair
-        </button>
       </div>
 
       <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 sm:p-10">
@@ -131,29 +138,42 @@ export function Ordinance() {
           Validação de Ingressos
         </h2>
 
-        {/* Botão de Alternância da Câmera */}
-        <div className="flex justify-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
           <button
             type="button"
             onClick={() => setCameraActive(!cameraActive)}
-            className={`font-bold py-2 px-6 rounded-full shadow transition flex items-center gap-2 ${
+            className={`font-bold py-2 px-6 rounded-full shadow transition flex items-center justify-center gap-2 ${
               cameraActive 
                 ? 'bg-red-500 hover:bg-red-600 text-white' 
                 : 'bg-brand-400 hover:bg-brand-500 text-white'
             }`}
           >
-            {cameraActive ? '📷 Fechar Câmera' : '📷 Ler QR Code com a Câmera'}
+            {cameraActive ? '📷 Fechar Câmera' : '📷 Ler com a Câmera'}
           </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="font-bold py-2 px-6 rounded-full shadow transition flex items-center justify-center gap-2 bg-brand-100 hover:bg-brand-200 text-brand-600 border border-brand-300"
+          >
+            🖼️ Enviar Imagem (Print)
+          </button>
+          
+          <input 
+            type="file" 
+            accept="image/*" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+          />
         </div>
 
-        {/* Div onde a câmera será renderizada */}
-        {cameraActive && (
-          <div className="mb-8 flex justify-center">
-            <div id="reader" className="w-full max-w-sm rounded-lg overflow-hidden border-2 border-brand-300"></div>
-          </div>
-        )}
+        <div className={`mb-8 flex justify-center ${cameraActive ? 'block' : 'hidden'}`}>
+          <div id="reader" className="w-full max-w-sm rounded-lg overflow-hidden border-2 border-brand-300 bg-black"></div>
+        </div>
 
-        {/* Formulário de Leitura Manual / Leitor Físico */}
+        <div id="file-reader" className="hidden"></div>
+
         {!cameraActive && (
           <form onSubmit={handleManualSubmit} className="flex flex-col sm:flex-row gap-4 mb-8">
             <input
@@ -190,7 +210,7 @@ export function Ordinance() {
               <h3 className="text-2xl font-black uppercase mb-1">{message}</h3>
               <p className="font-semibold text-green-700 text-lg">{ticketData?.event_title}</p>
               <p className="text-sm font-bold mt-2 bg-green-200 px-3 py-1 rounded inline-block">
-                Assento: {ticketData?.seat}
+                Assento: {ticketData?.seat || 'Pista'}
               </p>
             </>
           )}

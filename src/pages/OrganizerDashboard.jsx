@@ -12,7 +12,7 @@ export function OrganizerDashboard() {
   const [tmdbResults, setTmdbResults] = useState([]);
   const [searchingTmdb, setSearchingTmdb] = useState(false);
 
-  // Estado atualizado com os novos campos
+  // 1. ATUALIZADO: Estado com os novos campos de assentos
   const [formData, setFormData] = useState({
     title: '',
     event_datetime: '',
@@ -20,7 +20,10 @@ export function OrganizerDashboard() {
     price: '',
     total_capacity: '',
     description: '',
-    poster_url: ''
+    poster_url: '',
+    has_assigned_seats: false,
+    rows_count: '',
+    seats_per_row: ''
   });
 
   useEffect(() => {
@@ -40,7 +43,10 @@ export function OrganizerDashboard() {
 
   function openCreateModal() {
     setEditingEventId(null);
-    setFormData({ title: '', event_datetime: '', location: '', price: '', total_capacity: '', description: '', poster_url: '' });
+    setFormData({ 
+      title: '', event_datetime: '', location: '', price: '', total_capacity: '', 
+      description: '', poster_url: '', has_assigned_seats: false, rows_count: '', seats_per_row: '' 
+    });
     setIsModalOpen(true);
   }
 
@@ -48,6 +54,7 @@ export function OrganizerDashboard() {
     setEditingEventId(event.id);
     const formattedDate = new Date(event.event_datetime).toISOString().slice(0, 16);
     
+    // 2. ATUALIZADO: Puxando o status de assento para bloquear a edição se for o caso
     setFormData({
       title: event.title,
       event_datetime: formattedDate,
@@ -55,7 +62,10 @@ export function OrganizerDashboard() {
       price: event.price,
       total_capacity: event.total_capacity,
       description: event.description || '',
-      poster_url: event.poster_url || ''
+      poster_url: event.poster_url || '',
+      has_assigned_seats: event.has_assigned_seats || false,
+      rows_count: '', // Não vem do banco, e não importa, pois não deixaremos editar
+      seats_per_row: '' 
     });
     setIsModalOpen(true);
   }
@@ -63,7 +73,7 @@ export function OrganizerDashboard() {
   function closeModal() {
     setIsModalOpen(false);
     setEditingEventId(null);
-    setFormData({ title: '', event_datetime: '', location: '', price: '', total_capacity: '', description: '', poster_url: '' });
+    setFormData({ title: '', event_datetime: '', location: '', price: '', total_capacity: '', description: '', poster_url: '', has_assigned_seats: false, rows_count: '', seats_per_row: '' });
   }
 
   async function handleSearchTMDB() {
@@ -85,7 +95,6 @@ export function OrganizerDashboard() {
   }
 
   function handleSelectMovie(movie) {
-    // Monta a URL oficial do TMDB caso exista um poster_path
     const tmdbBaseUrl = "https://image.tmdb.org/t/p/w500";
     const imageUrl = movie.poster_path ? `${tmdbBaseUrl}${movie.poster_path}` : '';
 
@@ -105,15 +114,32 @@ export function OrganizerDashboard() {
     try {
       const token = localStorage.getItem('@EliteTickets:token');
       
+      // 3. ATUALIZADO: Tratamento do payload antes de enviar pra API
+      let finalCapacity = parseInt(formData.total_capacity);
+
+      // Se for criação e tiver lugar marcado, o front calcula a capacidade (A API vai sobrescrever por segurança também)
+      if (!editingEventId && formData.has_assigned_seats) {
+        finalCapacity = parseInt(formData.rows_count) * parseInt(formData.seats_per_row);
+      }
+
       const payload = {
         title: formData.title,
         event_datetime: new Date(formData.event_datetime).toISOString(),
         location: formData.location,
         price: parseFloat(formData.price),
-        total_capacity: parseInt(formData.total_capacity),
+        total_capacity: finalCapacity || 0,
         description: formData.description,
         poster_url: formData.poster_url
       };
+
+      // Mandamos as variáveis extras APENAS se for um evento novo e com lugar marcado
+      if (!editingEventId) {
+        payload.has_assigned_seats = formData.has_assigned_seats;
+        if (formData.has_assigned_seats) {
+          payload.rows_count = parseInt(formData.rows_count);
+          payload.seats_per_row = parseInt(formData.seats_per_row);
+        }
+      }
 
       if (editingEventId) {
         await api.put(`/events/${editingEventId}`, payload, {
@@ -180,14 +206,13 @@ export function OrganizerDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map(event => (
               <div key={event.id} className="bg-white rounded-xl shadow border border-brand-200 flex flex-col overflow-hidden">
-                {/* Exibe o cartaz no card se existir */}
                 {event.poster_url ? (
                   <img 
                     src={event.poster_url.startsWith('http') ? event.poster_url : `https://image.tmdb.org/t/p/w500${event.poster_url}`} 
                     alt={event.title} 
                     className="w-full h-48 object-cover bg-gray-100"
                     onError={(e) => {
-                      e.target.onerror = null; // Previne loop infinito
+                      e.target.onerror = null; 
                       e.target.src = 'https://via.placeholder.com/500x300?text=Imagem+Indisponível';
                     }}
                   />
@@ -200,7 +225,14 @@ export function OrganizerDashboard() {
                 
                 <div className="p-6 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-bold text-xl text-brand-500 mb-2 truncate">{event.title}</h3>
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-bold text-xl text-brand-500 truncate pr-2">{event.title}</h3>
+                      {/* Badge Visual pra mostrar que é com assento */}
+                      {event.has_assigned_seats && (
+                        <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded">Assentos</span>
+                      )}
+                    </div>
+                    
                     <p className="text-sm text-brand-400 mb-1">📍 {event.location}</p>
                     <p className="text-sm text-brand-400 mb-4">
                       📅 {new Date(event.event_datetime).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
@@ -264,7 +296,6 @@ export function OrganizerDashboard() {
                     </button>
                   </div>
 
-                  {/* Dropdown Rico Melhorado */}
                   {tmdbResults.length > 0 && (
                     <ul className="absolute z-10 w-full left-0 mt-1 max-h-60 overflow-y-auto bg-white border border-brand-200 rounded-md shadow-xl">
                       {tmdbResults.map((movie) => (
@@ -297,7 +328,6 @@ export function OrganizerDashboard() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Linha 1: Título e Poster URL */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-1">
                     <label className="block text-sm font-bold text-brand-500 mb-1">Título do Evento *</label>
@@ -321,7 +351,6 @@ export function OrganizerDashboard() {
                   </div>
                 </div>
 
-                {/* Linha 2: Descrição */}
                 <div>
                   <label className="block text-sm font-bold text-brand-500 mb-1">Descrição / Sinopse</label>
                   <textarea 
@@ -332,7 +361,6 @@ export function OrganizerDashboard() {
                   />
                 </div>
                 
-                {/* Linha 3: Dados Numéricos e Locais */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-brand-500 mb-1">Data e Hora *</label>
@@ -366,17 +394,91 @@ export function OrganizerDashboard() {
                       onChange={e => setFormData({...formData, price: e.target.value})}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-brand-500 mb-1">Capacidade Total *</label>
-                    <input 
-                      required
-                      type="number" 
-                      min="1"
-                      className="w-full p-2 border rounded border-brand-200"
-                      value={formData.total_capacity}
-                      onChange={e => setFormData({...formData, total_capacity: e.target.value})}
-                    />
-                  </div>
+
+                  {/* 4. ATUALIZADO: Bloco dinâmico de Capacidade x Assentos Marcados */}
+                  
+                  {/* Se for criação, mostra o seletor */}
+                  {!editingEventId && (
+                    <div className="md:col-span-2 border-t border-brand-100 pt-4 mt-2">
+                      <label className="flex items-center gap-2 cursor-pointer font-bold text-brand-600 mb-4">
+                        <input 
+                          type="checkbox" 
+                          className="w-5 h-5 text-brand-500"
+                          checked={formData.has_assigned_seats} 
+                          onChange={e => setFormData({...formData, has_assigned_seats: e.target.checked})} 
+                        />
+                        Este evento possui lugares marcados (mapa de assentos)?
+                      </label>
+
+                      {formData.has_assigned_seats ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-brand-50 p-4 rounded-lg border border-brand-200">
+                          <div>
+                            <label className="block text-sm font-bold text-brand-500 mb-1">Qtd. de Fileiras (A, B, C...)</label>
+                            <input 
+                              required
+                              type="number" 
+                              min="1" 
+                              max="26"
+                              className="w-full p-2 border rounded border-brand-200"
+                              value={formData.rows_count}
+                              onChange={e => setFormData({...formData, rows_count: e.target.value})}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-brand-500 mb-1">Assentos por Fileira (1, 2...)</label>
+                            <input 
+                              required
+                              type="number" 
+                              min="1"
+                              className="w-full p-2 border rounded border-brand-200"
+                              value={formData.seats_per_row}
+                              onChange={e => setFormData({...formData, seats_per_row: e.target.value})}
+                            />
+                          </div>
+                          {(formData.rows_count && formData.seats_per_row) && (
+                            <div className="md:col-span-2 text-sm text-green-700 font-bold mt-2">
+                              ✓ O mapa terá {formData.rows_count * formData.seats_per_row} lugares.
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-sm font-bold text-brand-500 mb-1">Capacidade Total (Pista) *</label>
+                          <input 
+                            required
+                            type="number" 
+                            min="1"
+                            className="w-full p-2 border rounded border-brand-200 md:w-1/2"
+                            value={formData.total_capacity}
+                            onChange={e => setFormData({...formData, total_capacity: e.target.value})}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Se estiver editando um evento já criado */}
+                  {editingEventId && (
+                    <div className="md:col-span-1">
+                      <label className="block text-sm font-bold text-brand-500 mb-1">
+                        Capacidade Total * 
+                        {formData.has_assigned_seats && <span className="text-red-500 ml-1">(Bloqueado)</span>}
+                      </label>
+                      <input 
+                        required
+                        type="number" 
+                        min="1"
+                        disabled={formData.has_assigned_seats}
+                        className={`w-full p-2 border rounded border-brand-200 ${formData.has_assigned_seats ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
+                        value={formData.total_capacity}
+                        onChange={e => setFormData({...formData, total_capacity: e.target.value})}
+                      />
+                      {formData.has_assigned_seats && (
+                        <p className="text-xs text-brand-400 mt-1">A capacidade não pode ser alterada porque os assentos já foram gerados.</p>
+                      )}
+                    </div>
+                  )}
+
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-brand-100">

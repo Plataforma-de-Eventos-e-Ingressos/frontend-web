@@ -31,7 +31,22 @@ export function Home() {
       async function fetchEvents() {
         try {
           const response = await api.get('/events');
-          setEvents(response.data);
+          
+          // --- NOVA LÓGICA DE FILTRO (Tolerância de 30 min) ---
+          const now = new Date().getTime();
+          
+          const validEvents = response.data.filter(event => {
+            const eventTime = new Date(event.event_datetime).getTime();
+            // Adiciona 30 minutos (30 * 60 segundos * 1000 milissegundos)
+            const expirationTime = eventTime + (30 * 60 * 1000); 
+            
+            // Só mantém o evento se o tempo de expiração ainda for maior que agora
+            return expirationTime > now;
+          });
+
+          setEvents(validEvents);
+          // ----------------------------------------------------
+
         } catch (err) {
           setError('Não foi possível carregar os eventos no momento.');
         } finally {
