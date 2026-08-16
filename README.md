@@ -89,7 +89,7 @@ Para executar apenas o Front-end:
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/SuaOrganizacao/frontend-web.git
+git clone https://github.com/Plataforma-de-Eventos-e-Ingressos/frontend-web.git
 cd frontend-web
 ```
 
