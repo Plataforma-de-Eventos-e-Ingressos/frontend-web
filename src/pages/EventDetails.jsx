@@ -256,13 +256,13 @@ export function EventDetails() {
               <button onClick={() => setIsSeatMapOpen(false)} className="text-brand-300 hover:text-red-500 font-bold text-2xl">&times;</button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-gray-50 rounded-xl border border-gray-200 p-6 flex flex-col items-center">
+            <div className="flex-1 overflow-auto bg-gray-50 rounded-xl border border-gray-200 p-6 flex flex-col items-start w-full">
               
-              <div className="w-3/4 h-8 bg-brand-300 rounded-b-[50%] mb-10 flex items-center justify-center shadow-inner">
+              <div className="w-full h-8 bg-brand-300 rounded-b-[50%] mb-10 flex items-center justify-center shadow-inner">
                 <span className="text-xs font-bold text-white tracking-widest uppercase">Palco</span>
               </div>
 
-              <div className="flex flex-col gap-3 items-center pb-8">
+              <div className="flex flex-col gap-3 items-start pb-8 min-w-max mx-auto">
                 {sortedRows.map(rowLetter => {
                   const rowSeats = seatsByRow[rowLetter].sort((a, b) => a.number - b.number);
                   
@@ -283,10 +283,10 @@ export function EventDetails() {
                               title={`Assento ${seat.row}${seat.number} - ${isAvailable ? 'Livre' : 'Ocupado'}`}
                               className={`w-10 h-10 rounded-t-lg rounded-b-sm border-b-4 flex items-center justify-center text-xs font-bold transition-all
                                 ${isSelected 
-                                  ? 'bg-brand-500 border-brand-600 text-white transform scale-110 shadow-md' // Selecionado
+                                  ? 'bg-brand-500 border-brand-600 text-white transform scale-110 shadow-md' 
                                   : isAvailable 
-                                    ? 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:border-green-400' // Livre
-                                    : 'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed opacity-60' // Ocupado
+                                    ? 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:border-green-400' 
+                                    : 'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed opacity-60' 
                                 }`}
                             >
                               {seat.number}
