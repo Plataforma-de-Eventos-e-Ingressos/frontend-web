@@ -82,7 +82,7 @@ Essa padronização garante maior consistência visual entre as diferentes área
 
 ## 🚀 Como Executar Localmente
 
-> 💡 **Dica:** Para executar o ecossistema completo, incluindo banco de dados e API, utilizando Docker, consulte o repositório central **[docs-e-infra](link-do-repo-infra)**.
+> 💡 **Dica:** Para executar o ecossistema completo, incluindo banco de dados e API, utilizando Docker, consulte o repositório central **[docs-e-infra](https://github.com/Plataforma-de-Eventos-e-Ingressos/docs-and-infra)**.
 
 Para executar apenas o Front-end:
 
